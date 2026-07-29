@@ -37,14 +37,14 @@ dmesg -n 4
 
 ifconfig lo up
 
-# POPRAWKA 1: Sprawdzanie poprawności montowania kluczowych systemów plików
+
 mount -t proc proc /proc || { echo "Failed to mount /proc"; exit 1; }
 mount -t sysfs sysfs /sys || { echo "Failed to mount /sys"; exit 1; }
 mkdir -p /dev/pts
 mount -t devpts devpts /dev/pts || { echo "Failed to mount /dev/pts"; exit 1; }
 mount -t debugfs debugs /sys/kernel/debug || echo "Warning: debugfs mount failed"
 
-# Bezpieczniejsze uruchomienie udevd (zabezpieczone zmienne)
+
 UDEV_DAEMON="/kanapi_${KANAPI_VER}/packages/udev-175/libexec/udevd"
 if [ -x "${UDEV_DAEMON}" ]; then
     "${UDEV_DAEMON}" --daemon
@@ -57,7 +57,7 @@ fi
 openvt
 openvt
 
-# POPRAWKA 2: Automatyczne generowanie kluczy SSH przed uruchomieniem serwera, jeśli ich brak
+
 if [ -x /bin/ssh-keygen ] && [ ! -f /etc/ssh/ssh_host_rsa_key ]; then
     ssh-keygen -A
 fi
