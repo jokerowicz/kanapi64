@@ -10,7 +10,7 @@
 # (at your option) any later version.
 #
 # KaNaPi is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# --without ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
@@ -23,7 +23,7 @@ PKG_ACTION="pkg_$1"
 PAR2=$2
 PAR3=$3
 
-SF_URL=http://downloads.sourceforge.net/project/kanapi/packages/v${KANAPI_VERSION}
+SF_URL=https://downloads.sourceforge.net/project/kanapi/packages/v${KANAPI_VERSION}
 PKGS_LIST=packages.md5
 
 check_params() {
@@ -36,15 +36,14 @@ check_params() {
 }
 
 download() {
-#	wget $1 -O $2a
 	echo "downloading $1"
 	curl -L $1 -o $2
 }
 
 goto_pkg_dir() {
 	check_params
-	if [ ! -d ${PACKAGES_ROOT} ] ; then mkdir -p ${PACKAGES_ROOT} ; fi
-	cd ${PACKAGES_ROOT}
+	if [ ! -d "${PACKAGES_ROOT}" ] ; then mkdir -p "${PACKAGES_ROOT}" ; fi
+	cd "${PACKAGES_ROOT}"
 }
 
 pkg_pull() {
@@ -57,14 +56,20 @@ pkg_pull() {
 	fi
 	goto_pkg_dir
 	echo "getting list of packages for ${PKG_ARCH}"
-	download ${SF_URL}/${PKG_ARCH}/packages.md5 ${PKGS_LIST}
+	download "${SF_URL}/${PKG_ARCH}/packages.md5" "${PKGS_LIST}"
 	echo "looking for ${PAR2} in ${PKG_ARCH}"
-	PKGS=`grep ${PAR2} ${PKGS_LIST} | awk '{print $2}'`
+	PKGS=`grep "${PAR2}" "${PKGS_LIST}" | awk '{print $2}'`
 	for p in ${PKGS}
 	do
 		echo "pulling $p"
-		download ${SF_URL}/${PKG_ARCH}/$p $p
+		download "${SF_URL}/${PKG_ARCH}/$p" "$p"
 	done
+	
+	
+	echo "Verifying checksum for ${PAR2}..."
+	grep "${PAR2}" "${PKGS_LIST}" > "${PAR2}.md5"
+	md5sum -w -c "${PAR2}.md5"
+	rm "${PAR2}.md5"
 }
 
 pkg_pull_all() {
@@ -77,13 +82,17 @@ pkg_pull_all() {
 	fi
 	goto_pkg_dir
 	echo "getting list of packages for ${PKG_ARCH}"
-	download ${SF_URL}/${PKG_ARCH}/packages.md5 ${PKGS_LIST}
-	PKGS=`cat ${PKGS_LIST} | awk '{print $2}'`
+	download "${SF_URL}/${PKG_ARCH}/packages.md5" "${PKGS_LIST}"
+	PKGS=`cat "${PKGS_LIST}" | awk '{print $2}'`
 	for p in ${PKGS}
 	do
 		echo "pulling $p"
-		download ${SF_URL}/${PKG_ARCH}/$p $p
+		download "${SF_URL}/${PKG_ARCH}/$p" "$p"
 	done
+	
+
+	echo "Verifying checksums for all packages..."
+	md5sum -w -c "${PKGS_LIST}"
 }
 
 pkg_search() {
@@ -95,13 +104,13 @@ pkg_search() {
 		PKG_ARCH=`uname -m`
 	fi
 	goto_pkg_dir
-	if [ ! -f ${PKGS_LIST} ] 
+	if [ ! -f "${PKGS_LIST}" ] 
 	then
 		echo "getting list of packages for ${PKG_ARCH}"
-		download ${SF_URL}/${PKG_ARCH}/packages.md5 ${PKGS_LIST}
+		download "${SF_URL}/${PKG_ARCH}/packages.md5" "${PKGS_LIST}"
 	fi
 	echo "looking for ${PAR2}"
-	PKGS=`grep ${PAR2} ${PKGS_LIST} | awk '{print $2}'`
+	PKGS=`grep "${PAR2}" "${PKGS_LIST}" | awk '{print $2}'`
 	for p in ${PKGS}
 	do
 		echo "found: $p"
@@ -117,7 +126,7 @@ pkg_list() {
 	fi	
 	goto_pkg_dir
 	echo "getting list of packages for ${PKG_ARCH} to ${PKGS_LIST}"
-	download ${SF_URL}/${PKG_ARCH}/packages.md5 ${PKGS_LIST}
+	download "${SF_URL}/${PKG_ARCH}/packages.md5" "${PKGS_LIST}"
 }
 
 pkg_check_all() {
@@ -130,7 +139,7 @@ pkg_check_all() {
 	fi
 	goto_pkg_dir
 	echo "Checking packages with ${PKGS_LIST}"
-	md5sum -w -c ${PKGS_LIST} 
+	md5sum -w -c "${PKGS_LIST}" 
 	echo "Result: $?"
 }
 
@@ -144,9 +153,9 @@ pkg_check() {
 	fi
 	goto_pkg_dir
 	echo "looking for ${PAR2} for ${PKG_ARCH}"
-	grep ${PAR2} ${PKGS_LIST} > ${PAR2}.md5
-	md5sum -w -c ${PAR2}.md5
-	rm ${PAR2}.md5
+	grep "${PAR2}" "${PKGS_LIST}" > "${PAR2}.md5"
+	md5sum -w -c "${PAR2}.md5"
+	rm "${PAR2}.md5"
 }
 
 pkg_installed() {
@@ -159,11 +168,11 @@ pkg_installed() {
 	goto_pkg_dir
 	for i in ./*
 	do 
-		if [ -d $i ] 
+		if [ -d "$i" ] 
 		then
-			pkg=`basename $i`
+			pkg=`basename "$i"`
 			if [ "$pkg" = "libs" -o "$pkg" = "etc" ] ; then continue; fi
-			echo $pkg
+			echo "$pkg"
 		fi
 	done
 }
@@ -177,13 +186,13 @@ pkg_version() {
 		PKG_ARCH=`uname -m`
 	fi
 	goto_pkg_dir
-	PKGS=`ls | grep ${PAR2}`
+	PKGS=`ls | grep "${PAR2}"`
 	FOUND=0
 	if [ -n "$PKGS" ]
 	then
 		for p in ${PKGS}
 		do
-			. ${p}/kanapi.pkg
+			. "${p}/kanapi.pkg"
 			if [ "$PACKAGE_NAME" = "${PAR2}" ]
 			then
 				echo "${PACKAGE_VER}"
@@ -209,26 +218,26 @@ pkg_update_links() {
 	PACKAGES_ROOT=/kanapi_${KANAPI_VERSION}/${PKG_ARCH}/packages
 	DEST_BASE=/kanapi_${KANAPI_VERSION}/${PKG_ARCH}
 
-	if [ ! -d ${PACKAGES_ROOT}/libs ] ; then mkdir ${PACKAGES_ROOT}/libs ; fi
+	if [ ! -d "${PACKAGES_ROOT}/libs" ] ; then mkdir "${PACKAGES_ROOT}/libs" ; fi
 
-	for p in ${PACKAGES_ROOT}/*
+	for p in "${PACKAGES_ROOT}"/*
 	do
 		echo "updating $p"
-		if [ -d $p/bin ]; then ln -sf $p/bin/* ${DEST_BASE}/bin; fi
-		if [ -d $p/sbin ]; then ln -sf $p/sbin/*  ${DEST_BASE}/bin; fi
-		if [ -d $p/usr/bin ]; then ln -sf $p/usr/bin/* ${DEST_BASE}/bin; fi
-		if [ -d $p/lib ]
+		if [ -d "$p/bin" ]; then ln -sf "$p/bin/"* "${DEST_BASE}/bin"; fi
+		if [ -d "$p/sbin" ]; then ln -sf "$p/sbin/"*  "${DEST_BASE}/bin"; fi
+		if [ -d "$p/usr/bin" ]; then ln -sf "$p/usr/bin/"* "${DEST_BASE}/bin"; fi
+		if [ -d "$p/lib" ]
 	   	then	
-			for lib in $p/lib/lib*.so*  $p/lib/lib*.so* 
+			for lib in "$p/lib/lib"*.so*  "$p/lib/lib"*.so* 
 			do
-				if [ -f $lib ] ; then ln -sf $lib  ${PACKAGES_ROOT}/libs ; fi
+				if [ -f "$lib" ] ; then ln -sf "$lib"  "${PACKAGES_ROOT}/libs" ; fi
 			done
 	   	fi
-		if [ -d $p/lib64 ]
+		if [ -d "$p/lib64" ]
 	   	then	
-			for lib in $p/lib64/lib*.so*  $p/lib64/lib*.so* 
+			for lib in "$p/lib64/lib"*.so*  "$p/lib64/lib"*.so* 
 			do
-				if [ -f $lib ] ; then ln -sf $lib  ${PACKAGES_ROOT}/libs ; fi
+				if [ -f "$lib" ] ; then ln -sf "$lib"  "${PACKAGES_ROOT}/libs" ; fi
 			done
 	   	fi
 	done
@@ -237,15 +246,15 @@ pkg_update_links() {
 
 pkg_help() {
 	echo "Usage for `basename $0`:"
-	echo "pull package [ arm | i686 | x86_64 ]   - download package"
-	echo "pull_all [ arm | i686 | x86_64 ]       - download all packages"
+	echo "pull package [ arm | i686 | x86_64 ]    - download package and verify checksum"
+	echo "pull_all [ arm | i686 | x86_64 ]        - download all packages and verify checksums"
 	echo "search package [ arm | i686 | x86_64 ] - search package"
-	echo "list [ arm | i686 | x86_64 ]           - get list of packages"
+	echo "list [ arm | i686 | x86_64 ]            - get list of packages"
 	echo "check package [ arm | i686 | x86_64 ]  - check md5 sum of package"
-	echo "check_all [ arm | i686 | x86_64 ]      - check md5 sum of all packages"
-	echo "installed [ arm | i686 | x86_64 ]      - show installed packages"
+	echo "check_all [ arm | i686 | x86_64 ]       - check md5 sum of all packages"
+	echo "installed [ arm | i686 | x86_64 ]       - show installed packages"
 	echo "version package [ arm | i686 | x86_64 ]- show version of installed package"
-	echo "update_links [ arm | i686 | x86_64 ]   - update links for libs and apps"
+	echo "update_links [ arm | i686 | x86_64 ]    - update links for libs and apps"
 }
 
 pkg_() {
@@ -253,4 +262,3 @@ pkg_() {
 }
 
 ${PKG_ACTION}
-
