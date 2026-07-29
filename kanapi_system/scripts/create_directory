@@ -12,7 +12,7 @@ fi
 
 DIR_NAME="$1-$2"
 
-# POPRAWKA 1: Zabezpieczenie ścieżek cudzysłowami oraz obsługa błędów mkdir/pushd
+
 mkdir -p "${DIR_NAME}" || { echo "Failed to create directory ${DIR_NAME}"; exit 1; }
 pushd "${DIR_NAME}" > /dev/null
 
@@ -30,7 +30,7 @@ popd > /dev/null
 FULL_NAME="$1"
 NAME="$1"
 
-# POPRAWKA 2: Bezpieczne traktowanie zmiennych i grep
+
 if echo "$1" | grep -q "-"; then
 	NAME=$(echo "$1" | tr "-" "_")
 	echo "${FULL_NAME}_ver=\$(${NAME}_ver)" >> ../../scripts/config-Makefile.kanapi
