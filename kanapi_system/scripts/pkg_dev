@@ -29,43 +29,59 @@ else
 	PKG_ARCH=`uname -m`
 fi
 
-. ${HOME}/SF_user
+5
+if [ -f "${HOME}/SF_user" ]; then
+	. "${HOME}/SF_user"
+else
+	echo "Error: Configuration file ${HOME}/SF_user not found!"
+	exit 1
+fi
 
 pkg_push() {
 	echo "pushing ${PKG_NAME} for ${PKG_ARCH} as ${SF_USER}"
-	scp ${PKG_NAME} ${SF_USER}@frs.sourceforge.net:/home/frs/project/kanapi/packages/${KANAPI_VERSION}/${PKG_ARCH}
+	scp "${PKG_NAME}" "${SF_USER}@frs.sourceforge.net:/home/frs/project/kanapi/packages/${KANAPI_VERSION}/${PKG_ARCH}"
 }
 
 pkg_dir_push() {
 	echo "pushing packages from directory ${PKG_NAME} for ${PKG_ARCH}"
-	cd ${PKG_NAME} 
+	if [ ! -d "${PKG_NAME}" ]; then
+		echo "Error: Directory ${PKG_NAME} does not exist."
+		exit 1
+	fi
+	cd "${PKG_NAME}" || exit 1
 	for i in *.xz
 	do 
-		scp $i ${SF_USER}@frs.sourceforge.net:/home/frs/project/kanapi/packages/${KANAPI_VERSION}/${PKG_ARCH}
+		if [ -f "$i" ]; then
+			scp "$i" "${SF_USER}@frs.sourceforge.net:/home/frs/project/kanapi/packages/${KANAPI_VERSION}/${PKG_ARCH}"
+		fi
 	done
 	cd ..
 }
 
 pkg_compress() {
 	echo -n "archiving ${PKG_NAME} "
-	tar cf ${PKG_NAME}.tar ${PKG_NAME}
+	tar cf "${PKG_NAME}.tar" "${PKG_NAME}"
 	echo "compressing"
-	xz -T 0 -v ${PKG_NAME}.tar
+	xz -T 0 -v "${PKG_NAME}.tar"
 }
 
 pkg_dir_compress() {
 	echo "compressing packages in directory ${PKG_NAME}"
-	cd ${PKG_NAME} 
+	if [ ! -d "${PKG_NAME}" ]; then
+		echo "Error: Directory ${PKG_NAME} does not exist."
+		exit 1
+	fi
+	cd "${PKG_NAME}" || exit 1
 	for i in * 
 	do 
-		if [ -d $i ] 
+		if [ -d "$i" ] 
 	   	then  
 			if [ "$i" != "libs" ]
 			then
 				echo -n "archiving $i "
-				tar cf $i.tar $i
+				tar cf "$i.tar" "$i"
 				echo "compressing"
-				xz -T 0 -v $i.tar
+				xz -T 0 -v "$i.tar"
 			fi
 	   	fi
 	done
@@ -74,24 +90,35 @@ pkg_dir_compress() {
 
 pkg_md5() {
 	echo "creating md5 sum for packages in directory ${PKG_NAME}"
-	cd ${PKG_NAME}
+	if [ ! -d "${PKG_NAME}" ]; then
+		echo "Error: Directory ${PKG_NAME} does not exist."
+		exit 1
+	fi
+	cd "${PKG_NAME}" || exit 1
 	echo -n > packages
 	for i in *.xz 
 	do 
-		md5sum $i  >> packages
+		if [ -f "$i" ]; then
+			md5sum "$i" >> packages
+		fi
 	done
-	cat packages | awk '{print $2 " " $1}' | sort  | awk '{print $2 "  " $1 }' > packages.md5
-	rm packages
+	if [ -s packages ]; then
+		cat packages | awk '{print $2 " " $1}' | sort | awk '{print $2 "  " $1 }' > packages.md5
+	fi
+	rm -f packages
 	cd ..
 }
 
 pkg_md5_push() {
 	echo "pushing md5 file from directory ${PKG_NAME} for ${PKG_ARCH}"
-	cd ${PKG_NAME}
-		scp packages.md5 ${SF_USER}@frs.sourceforge.net:/home/frs/project/kanapi/packages/${KANAPI_VERSION}/${PKG_ARCH}
+	if [ ! -d "${PKG_NAME}" ]; then
+		echo "Error: Directory ${PKG_NAME} does not exist."
+		exit 1
+	fi
+	cd "${PKG_NAME}" || exit 1
+		scp packages.md5 "${SF_USER}@frs.sourceforge.net:/home/frs/project/kanapi/packages/${KANAPI_VERSION}/${PKG_ARCH}"
 	cd ..
 }
-
 
 pkg_release() {
 	pkg_dir_compress
@@ -99,11 +126,11 @@ pkg_release() {
 }
 
 pkg_help() {
-	name=`basename $0`
+	name=`basename "$0"`
 	echo "Usage: ${name} command options"
-	echo "commands: push, dir_push, compress, dir_compress, md5, release md5_push"
+	echo "commands: push, dir_push, compress, dir_compress, md5, release, md5_push"
 	echo "commands with options:"
-	echo "push package [arm | i686 | x86_64 ]       - upload package"
+	echo "push package [arm | i686 | x86_64 ]        - upload package"
 	echo "dir_push directory [arm | i686 | x86_64 ] - upload packages from directory"
 	echo "compress package                          - compress package"
 	echo "dir_compress directory                    - compress all packages in directory"
@@ -117,4 +144,3 @@ pkg_() {
 }
 
 ${PKG_ACTION}
-
