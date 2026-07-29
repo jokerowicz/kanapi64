@@ -25,49 +25,61 @@ export LC_ALL=pl_PL.UTF-8
 export EDITOR=vim
 export KANAPI_VER=@KANAPI_VER@
 export USER=kanapi
-export HOME=/kanapi_${KANAPI_VER}home
-export XDG_CONFIG_HOME=${HOME}/.config
-export XDG_CACHE_HOME=${HOME}/.cache
-export XDG_DATA_HOME=${HOME}/.local
-export XDG_RUNTIME_DIR=${HOME}/.cache
-export LD_LIBRARY_PATH=/kanapi_${KANAPI_VER}/packages/libs
-export PATH=/bin
+export HOME="/kanapi_${KANAPI_VER}home"
+export XDG_CONFIG_HOME="${HOME}/.config"
+export XDG_CACHE_HOME="${HOME}/.cache"
+export XDG_DATA_HOME="${HOME}/.local"
+export XDG_RUNTIME_DIR="${HOME}/.cache"
+export LD_LIBRARY_PATH="/kanapi_${KANAPI_VER}/packages/libs"
+export PATH="/bin:/usr/bin:/sbin:/usr/sbin"
 
 dmesg -n 4
 
 ifconfig lo up
 
-mount -t proc proc /proc
-mount -t sysfs sysfs /sys
-mkdir /dev/pts
-mount -t devpts devpts /dev/pts
-mount -t debugfs debugs /sys/kernel/debug
+# POPRAWKA 1: Sprawdzanie poprawności montowania kluczowych systemów plików
+mount -t proc proc /proc || { echo "Failed to mount /proc"; exit 1; }
+mount -t sysfs sysfs /sys || { echo "Failed to mount /sys"; exit 1; }
+mkdir -p /dev/pts
+mount -t devpts devpts /dev/pts || { echo "Failed to mount /dev/pts"; exit 1; }
+mount -t debugfs debugs /sys/kernel/debug || echo "Warning: debugfs mount failed"
 
-/kanapi_${KANAPI_VER}/packages/udev-175/libexec/udevd --daemon
-udevadm trigger
-udevadm settle
-
-#gpm -m /dev/input/mice -t exps2
-#/kanapi_packages/config/network
+# Bezpieczniejsze uruchomienie udevd (zabezpieczone zmienne)
+UDEV_DAEMON="/kanapi_${KANAPI_VER}/packages/udev-175/libexec/udevd"
+if [ -x "${UDEV_DAEMON}" ]; then
+    "${UDEV_DAEMON}" --daemon
+    udevadm trigger
+    udevadm settle
+else
+    echo "Warning: udevd not found or not executable at ${UDEV_DAEMON}"
+fi
 
 openvt
 openvt
-#ssh-keygen -A
-/bin/sshd
-#/bin/localedef -c -i pl_PL -f UTF-8 pl_PL.UTF-8
+
+# POPRAWKA 2: Automatyczne generowanie kluczy SSH przed uruchomieniem serwera, jeśli ich brak
+if [ -x /bin/ssh-keygen ] && [ ! -f /etc/ssh/ssh_host_rsa_key ]; then
+    ssh-keygen -A
+fi
+
+if [ -x /bin/sshd ]; then
+    /bin/sshd
+else
+    echo "Warning: sshd binary not found"
+fi
 
 echo "###########################################################"
-echo "#                                                          "
-echo "#                                                          "
-echo "#    Welcome to KaNaPi ${KANAPI_VER} for x86_64            "
-echo "#    Arch: ${ARCH}                                         "
-echo "#    Kernel: ${KERNEL}                                     "
+echo "#                                                         "
+echo "#                                                         "
+echo "#    Welcome to KaNaPi ${KANAPI_VER} for x86_64           "
+echo "#    Arch: ${ARCH}                                        "
+echo "#    Kernel: ${KERNEL}                                    "
 echo "###########################################################"
 
 /bin/bash
 
 echo "##################################################"
-echo "###       What do you want to do now?          ###"
+echo "###        What do you want to do now?         ###"
 echo "###                                            ###"
 echo "### finish - switch off machine                ###"
 echo "### restart - restart machine                  ###"
@@ -77,4 +89,3 @@ while true
 do
 	/bin/bash
 done
-
