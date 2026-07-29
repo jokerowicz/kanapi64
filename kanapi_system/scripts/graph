@@ -1,13 +1,32 @@
 #!/bin/bash
 
+
+set -o pipefail
+
 if [ -z "$1" ]
 then
 	echo "package name missing"
 	echo "run: $0 package_name"
+	exit 1
 else
 	unset LANG
 	unset LC_ALL
-	make -Bnd $1 ACTION=download V=1 | make2graph -r | dot -Tpdf -o $1.pdf
-	evince $1.pdf
+	
+	
+	PDF_FILE="$1.pdf"
+	
+	echo "Generating dependency graph for '$1'..."
+	if make -Bnd "$1" ACTION=download V=1 | make2graph -r | dot -Tpdf -o "$PDF_FILE"; then
+		echo "Graph generated successfully: $PDF_FILE"
+		
+		
+		if command -v evince >/dev/null 2>&1 && [ -n "$DISPLAY" ]; then
+			evince "$PDF_FILE" &
+		else
+			echo "Note: evince not available or no graphical display detected. PDF saved as ${PDF_FILE}"
+		fi
+	else
+		echo "Error: Failed to generate graph for '$1'."
+		exit 1
+	fi
 fi
-
